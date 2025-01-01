@@ -288,16 +288,12 @@ void apiClient_invoke(apiClient_t    *apiClient,
 
         if(headerType != NULL) {
             list_ForEach(listEntry, headerType) {
-                if(strstr((char *) listEntry->data,
-                          "xml") == NULL)
+                if(strstr(listEntry->data, "xml") == NULL)
                 {
-                    buffHeader = malloc(strlen(
-                                    "Accept: ") +
-                                        strlen((char *)
-                                               listEntry->
-                                               data) + 1);
-                    sprintf(buffHeader, "%s%s", "Accept: ",
-                            (char *) listEntry->data);
+                    buffHeader = malloc(sizeof "Accept: " +
+                                        strlen(listEntry->data));
+                    sprintf(buffHeader, "Accept: %s",
+                            listEntry->data);
                     headers = curl_slist_append(headers,
                                                 buffHeader);
                     free(buffHeader);
@@ -306,18 +302,12 @@ void apiClient_invoke(apiClient_t    *apiClient,
         }
         if(contentType != NULL) {
             list_ForEach(listEntry, contentType) {
-                if(strstr((char *) listEntry->data,
-                          "xml") == NULL)
+                if(strstr(listEntry->data, "xml") == NULL)
                 {
-                    buffContent =
-                        malloc(strlen(
-                                   "Content-Type: ") + strlen(
-                                   (char *)
-                                   listEntry->data) +
-                               1);
-                    sprintf(buffContent, "%s%s",
-                            "Content-Type: ",
-                            (char *) listEntry->data);
+                    buffContent = malloc(sizeof "Content-Type: " +
+                                         strlen(listEntry->data));
+                    sprintf(buffContent, "Content-Type: %s",
+                            listEntry->data);
                     headers = curl_slist_append(headers,
                                                 buffContent);
                     free(buffContent);
