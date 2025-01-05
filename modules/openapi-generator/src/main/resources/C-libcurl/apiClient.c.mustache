@@ -594,11 +594,25 @@ void apiClient_invoke(apiClient_t    *apiClient,
 
 size_t writeDataCallback(void *buffer, size_t size, size_t nmemb, void *userp) {
     size_t size_this_time = nmemb * size;
+    if (size_this_time < 1) {
+        return 0;
+    }
+
     apiClient_t *apiClient = (apiClient_t *)userp;
-    apiClient->dataReceived = (char *)realloc( apiClient->dataReceived, apiClient->dataReceivedLen + size_this_time + 1);
-    memcpy((char *)apiClient->dataReceived + apiClient->dataReceivedLen, buffer, size_this_time);
-    apiClient->dataReceivedLen += size_this_time;
-    ((char*)apiClient->dataReceived)[apiClient->dataReceivedLen] = '\0'; // the space size of (apiClient->dataReceived) = dataReceivedLen + 1
+    size_t len = apiClient->dataReceivedLen >= 0
+                 ? (size_t)apiClient->dataReceivedLen
+                 : 0U;
+    char *data = realloc(apiClient->dataReceived,
+                         len + size_this_time + 1);
+    if (!data) {
+        return 0;
+    }
+    memcpy(&data[len], buffer, size_this_time);
+    data[len] = '\0';
+
+    apiClient->dataReceived = data;
+    apiClient->dataReceivedLen = (long)(len + size_this_time);
+
     if (apiClient->data_callback_func) {
         apiClient->data_callback_func(&apiClient->dataReceived, &apiClient->dataReceivedLen);
     }
