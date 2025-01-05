@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "../include/apiClient.h"
 
-size_t writeDataCallback(void *buffer, size_t size, size_t nmemb, void *userp);
+static size_t writeDataCallback(char *buffer, size_t size, size_t nmemb, void *userp);
 
 apiClient_t *apiClient_create() {
     apiClient_t *apiClient = malloc(sizeof(apiClient_t));
@@ -592,7 +592,7 @@ void apiClient_invoke(apiClient_t    *apiClient,
     }
 }
 
-size_t writeDataCallback(void *buffer, size_t size, size_t nmemb, void *userp) {
+static size_t writeDataCallback(char *buffer, size_t size, size_t nmemb, void *userp) {
     size_t size_this_time = nmemb * size;
     if (size_this_time < 1) {
         return 0;
