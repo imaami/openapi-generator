@@ -46,6 +46,7 @@ set(SRCS
     src/apiKey.c
     src/apiClient.c
     src/binary.c
+    src/dstr.c
     external/cJSON.c
     model/object.c
     api/DefaultAPI.c
@@ -56,6 +57,7 @@ set(HDRS
     include/apiClient.h
     include/list.h
     include/binary.h
+    include/dstr.h
     include/keyValuePair.h
     external/cJSON.h
     model/object.h
