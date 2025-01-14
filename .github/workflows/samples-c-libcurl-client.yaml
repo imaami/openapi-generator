@@ -15,25 +15,102 @@ on:
 jobs:
   build:
     name: Build c libcurl client
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         sample:
           - 'samples/client/petstore/c/'
           - 'samples/client/petstore/c-useJsonUnformatted/'
           - 'samples/client/others/c/bearerAuth/'
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare
+      - name: Install dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev libcurl4-openssl-dev
-      - name: Build
+
+      - name: Prepare
+        run: |
+          __build() {
+            local r=0 d="build/$1"
+            mkdir -p "$d" && {
+              local cflg="__cflags_$1"
+              cflg="-fdiagnostics-color=always ${!cflg}"
+              set -o pipefail
+              cmake -B "$d" -S .                       \
+                    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+                    -DCMAKE_COLOR_MAKEFILE=ON          \
+                    -DCMAKE_C_FLAGS="${cflg}"          \
+                    -DCMAKE_BUILD_TYPE="$1" 2>&1       \
+              | tee >(sed -E 's/\x1b\[([0-9;]*m|K)//g' \
+                      > "$d/config.log")               &&
+              cmake --build "$d" 2>&1                  \
+              | tee >(sed -E 's/\x1b\[([0-9;]*m|K)//g' \
+                      > "$d/build.log")                \
+              || r=$?
+              set +o pipefail
+            } || r=$?
+            return $r
+          }
+
+          f="$(declare -f __build)"
+          if (( BASH_VERSINFO == 3 )); then
+            f=$(printf 'eval %q' "$f")
+          fi
+
+          build_type() {
+            local "$1=declare -F __build >/dev/null || $f; __build $1"
+            echo "$1=$(declare -p $1); eval \"\$$1\"" >> "$GITHUB_ENV"
+            echo "__cflags_$1=${*:2}" >> "$GITHUB_ENV"
+          }
+
+          CFLAGS='-Wall -Wextra -Wpedantic'
+
+          build_type Debug          $CFLAGS
+          build_type RelWithDebInfo $CFLAGS
+          build_type Release        $CFLAGS
+          build_type MinSizeRel     $CFLAGS
+
+      - name: Debug build
         working-directory: ${{ matrix.sample }}
         run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
+          eval "$Debug"
+
+      - name: RelWithDebInfo build
+        working-directory: ${{ matrix.sample }}
+        run: |
+          eval "$RelWithDebInfo"
+
+      - name: Release build
+        working-directory: ${{ matrix.sample }}
+        run: |
+          eval "$Release"
+
+      - name: MinSizeRel build
+        working-directory: ${{ matrix.sample }}
+        run: |
+          eval "$MinSizeRel"
+
+      - name: Warnings summary
+        working-directory: ${{ matrix.sample }}
+        run: |
+          __print_warning_stats() {
+            local log build_type tmp i=0
+            for log in "$@"; do
+              build_type="${log%/build.log}"
+              build_type="${build_type##*/}"
+              tmp=$(grep -o '\[-W[^]]*\]' "$log" \
+                    | sort | uniq -c | sort -rn)
+              if [[ "$tmp" ]]; then
+                (( ! i++ )) || echo
+                echo "$build_type"
+                echo "$tmp"
+              fi
+            done
+          }
+
+          __print_warning_stats build/*/build.log
