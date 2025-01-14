@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "../include/dstr.h"
 #include "../include/apiClient.h"
 
 size_t writeDataCallback(void *buffer, size_t size, size_t nmemb, void *userp);
@@ -223,41 +224,39 @@ void apiClient_invoke(apiClient_t    *apiClient,
         listEntry_t *listEntry;
         curl_mime *mime = NULL;
         struct curl_slist *headers = NULL;
-        char *buffContent = NULL;
-        char *buffHeader = NULL;
         binary_t *fileVar = NULL;
         char *formString = NULL;
+        struct dstr str = dstr_init();
 
         if(headerType != NULL) {
+            dstr_set(&str, "Accept: ", sizeof "Accept: " - 1U);
             list_ForEach(listEntry, headerType) {
                 if(strstr(listEntry->data, "xml") == NULL)
                 {
-                    buffHeader = malloc(sizeof("Accept: ") +
-                                        strlen(listEntry->data));
-                    sprintf(buffHeader, "Accept: %s",
-                            (char *) listEntry->data);
-                    headers = curl_slist_append(headers, buffHeader);
-                    free(buffHeader);
+                    dstr_write(&str, listEntry->data,
+                               strlen(listEntry->data),
+                               sizeof("Accept: ") - 1U);
+                    headers = curl_slist_append(headers, dstr_get(&str));
                 }
             }
         }
         if(contentType != NULL) {
+            dstr_set(&str, "Content-Type: ", sizeof "Content-Type: " - 1U);
             list_ForEach(listEntry, contentType) {
                 if(strstr(listEntry->data, "xml") == NULL)
                 {
-                    buffContent = malloc(sizeof("Content-Type: ") +
-                                         strlen(listEntry->data));
-                    sprintf(buffContent, "Content-Type: %s",
-                            (char *) listEntry->data);
-                    headers = curl_slist_append(headers, buffContent);
-                    free(buffContent);
-                    buffContent = NULL;
+                    dstr_write(&str, listEntry->data,
+                               strlen(listEntry->data),
+                               sizeof("Content-Type: ") - 1U);
+                    headers = curl_slist_append(headers, dstr_get(&str));
                 }
             }
         } else {
             headers = curl_slist_append(headers,
                                         "Content-Type: application/json");
         }
+
+        dstr_fini(&str);
 
         if(requestType != NULL) {
             curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST,
