@@ -26,6 +26,7 @@ external/cJSON.h
 external/cJSON.licence
 include/apiClient.h
 include/binary.h
+include/dstr.h
 include/keyValuePair.h
 include/list.h
 libcurl.licence
@@ -55,5 +56,6 @@ model/user.h
 src/apiClient.c
 src/apiKey.c
 src/binary.c
+src/dstr.c
 src/list.c
 uncrustify-rules.cfg
